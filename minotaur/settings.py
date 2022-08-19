@@ -112,6 +112,10 @@ LOGGING = {
         },
     },
     'loggers': {
+        '': {
+            'handlers': ['console'],
+            'level': 'WARNING'
+        },
         'jobsy': {
             'handlers': ['console'],
             'level': 'INFO'
