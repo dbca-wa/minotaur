@@ -137,3 +137,7 @@ class JobInstance(models.Model):
 
     class Meta:
         ordering = ["-created"]
+
+    def __str__(self):
+        tz = timezone.get_default_timezone()
+        return f'{self.job.id}|{self.created.astimezone(tz).isoformat()}|{self.status}'
