@@ -15,11 +15,23 @@ class JobAdminForm(ModelForm):
 
 @register(Job)
 class JobAdmin(ModelAdmin):
-    fields = ("name", "schedule", "deadline", "status", "owner", "active")
+    fields = (
+        "id",
+        "created",
+        "name",
+        "schedule",
+        "deadline",
+        "status",
+        "owner",
+        "active",
+        "last_checked",
+        "last_good",
+        "last_notify",
+        "workflow_check_result",
+    )
     form = JobAdminForm
     list_display = (
         "id",
-        "created",
         "name",
         "schedule",
         "deadline",
@@ -31,4 +43,12 @@ class JobAdmin(ModelAdmin):
         "workflow_check_result",
     )
     list_filter = ("active",)
+    readonly_fields = (
+        "id",
+        "created",
+        "last_checked",
+        "last_good",
+        "last_notify",
+        "workflow_check_result",
+    )
     search_fields = ("name", "status", "owner")
