@@ -28,7 +28,7 @@ class Job(models.Model):
         ordering = ["-created"]
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.owner.email})"
 
     def get_next(self):
         """Based on the current local time, get the timestamp of the next scheduled instance of this job.
@@ -87,14 +87,16 @@ class Job(models.Model):
     def send_notification(self):
         """Method to email a notification to a job owner.
         """
-        subject = f"JOB FAILURE ALERT: {self}"
-        body = f"""This job has passed its expected completion deadline: {self}\nExpected completion: {self.get_expected_finish()}"""
+        now = datetime.now(timezone.get_default_timezone())
+        subject = f"JOB FAILURE NOTIFICATION: {self.name}"
+        body = f"""Email timestamp: {now}\n
+This job has passed its expected completion deadline: {self.get_expected_finish()}"""
         msg = EmailMessage(subject=subject, body=body, from_email=settings.NOREPLY_EMAIL, to=[self.owner.email])
         msg.send(fail_silently=True)
 
-    def workflow_check(self):
+    def notify_workflow(self):
         """Function to run through the normal workflow of checking whether a job is in a good state
-        or not, updates the current state, and sends notifications (if required).
+        or not, updating the current state, and sending notifications (if required).
         """
         expected_finish = self.get_expected_finish()
         check_begins = datetime.now(timezone.get_default_timezone())
@@ -102,7 +104,7 @@ class Job(models.Model):
 
         # Don't continue checking if the expected finish is later than now.
         if expected_finish > check_begins:
-            self.set_workflow_result('skip')
+            self.set_workflow_result('Skipped (instance window)')
             return
 
         self.set_checked()
@@ -110,21 +112,23 @@ class Job(models.Model):
 
         # If check_result is None, we can't validly assess the job completion state.
         if check_result is None:
-            self.set_workflow_result('skip')
+            self.set_workflow_result('Check result null')
             return
 
         if check_result:  # Check is good.
             self.set_good()
-            self.set_workflow_result('good')
+            self.set_workflow_result('Success')
         else:  # Check is bad.
-            self.set_workflow_result('bad')
+            self.set_workflow_result('Fail')
             logger.warn("Job not recorded as completed (failure)")
             # Determine is we need to send a notification to the job owner.
             notify = self.check_notify()
             if notify and settings.SEND_NOTIFICATIONS:
                 self.set_notify()
-                logger.info(f"Sending a notification to {self.owner.email}")
+                logger.info(f"Sending a notification")
                 self.send_notification()
+            else:
+                logger.info("Not sending a notification at this time")
 
 
 class JobInstance(models.Model):

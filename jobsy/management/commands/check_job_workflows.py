@@ -10,4 +10,4 @@ class Command(BaseCommand):
         logger = logging.getLogger('jobsy')
         for job in Job.objects.filter(active=True):
             logger.info(f"Checking job: {job}")
-            job.workflow_check()
+            job.notify_workflow()
