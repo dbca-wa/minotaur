@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.mail import EmailMessage
 from django.db import models
+from django.urls import reverse
 from django.utils import timezone
 import logging
 import uuid
@@ -29,6 +30,9 @@ class Job(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.owner.email})"
+
+    def get_absolute_url(self):
+        return reverse('job_detail', kwargs={'id': self.id})
 
     def get_next(self):
         """Based on the current local time, get the timestamp of the next scheduled instance of this job.
@@ -84,12 +88,13 @@ class Job(models.Model):
         self.workflow_check_result = result
         self.save()
 
-    def send_notification(self):
+    def send_notification(self, check_time=None):
         """Method to email a notification to a job owner.
         """
-        now = datetime.now(timezone.get_default_timezone())
+        if not check_time:
+            check_time = datetime.now(timezone.get_default_timezone())
         subject = f"JOB FAILURE NOTIFICATION: {self.name}"
-        body = f"""Email timestamp: {now}\n
+        body = f"""Check timestamp: {check_time}\n
 This job has passed its expected completion deadline: {self.get_expected_finish()}"""
         msg = EmailMessage(subject=subject, body=body, from_email=settings.NOREPLY_EMAIL, to=[self.owner.email])
         msg.send(fail_silently=True)
@@ -104,11 +109,13 @@ This job has passed its expected completion deadline: {self.get_expected_finish(
 
         # Don't continue checking if the expected finish is later than now.
         if expected_finish > check_begins:
-            self.set_workflow_result('Skipped (instance window)')
+            logger.info(f"Job is currently inside the schedule deadline")
+            self.set_workflow_result('Inside schedule deadline')
             return
 
         self.set_checked()
         check_result = self.check_good()
+        check_time = datetime.now(timezone.get_default_timezone())
 
         # If check_result is None, we can't validly assess the job completion state.
         if check_result is None:
@@ -126,7 +133,7 @@ This job has passed its expected completion deadline: {self.get_expected_finish(
             if notify and settings.SEND_NOTIFICATIONS:
                 self.set_notify()
                 logger.info(f"Sending a notification")
-                self.send_notification()
+                self.send_notification(check_time)
             else:
                 logger.info("Not sending a notification at this time")
 
