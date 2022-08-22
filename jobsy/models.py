@@ -100,8 +100,8 @@ class Job(models.Model):
         if not check_time:
             check_time = datetime.now(timezone.get_default_timezone())
         subject = f"JOB FAILURE NOTIFICATION: {self.name}"
-        body = f"""Check timestamp: {check_time}\n
-This job has passed its expected completion deadline: {self.get_expected_finish()}"""
+        body = f"""Check time: {check_time.strftime("%A %-d-%b-%Y %H:%M:%S %Z")}\n
+This job has exceeded its expected completion deadline: {self.get_expected_finish().strftime("%A %-d-%b-%Y %H:%M:%S %Z")}"""
         msg = EmailMessage(subject=subject, body=body, from_email=settings.NOREPLY_EMAIL, to=[self.owner.email])
         msg.send(fail_silently=True)
 
