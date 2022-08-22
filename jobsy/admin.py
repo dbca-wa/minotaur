@@ -33,7 +33,7 @@ class JobAdmin(ModelAdmin):
     list_display = (
         "id",
         "name",
-        "schedule",
+        "schedule_desc",
         "deadline",
         "owner",
         "active",
@@ -52,3 +52,7 @@ class JobAdmin(ModelAdmin):
         "workflow_check_result",
     )
     search_fields = ("name", "status", "owner")
+
+    def schedule_desc(self, obj):
+        return obj.get_schedule_desc()
+    schedule_desc.short_description = 'schedule'

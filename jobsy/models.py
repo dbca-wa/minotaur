@@ -1,4 +1,5 @@
 from croniter import croniter
+from cron_descriptor import get_description
 from datetime import datetime, timedelta
 from django.conf import settings
 from django.core.mail import EmailMessage
@@ -50,6 +51,11 @@ class Job(models.Model):
         """
         start = self.get_prev()
         return start + timedelta(minutes=self.deadline)
+
+    def get_schedule_desc(self):
+        """Returns schedule cron expresssion as a human-readable string.
+        """
+        return get_description(self.schedule)
 
     def check_good(self):
         """Method to check a job and determine if a JobInstance exists having a created value

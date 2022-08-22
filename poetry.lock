@@ -75,6 +75,14 @@ optional = false
 python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
 
 [[package]]
+name = "cron-descriptor"
+version = "1.2.31"
+description = "A Python library that converts cron expressions into human readable strings."
+category = "main"
+optional = false
+python-versions = "*"
+
+[[package]]
 name = "croniter"
 version = "1.3.5"
 description = "croniter provides iteration for datetime object with cron like format"
@@ -456,7 +464,7 @@ brotli = ["brotli"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "ae1fbd5eb076bd52c34cca448a91d9d6f7901468a4d14e9aa3fa5b4052ab1171"
+content-hash = "ac268eca897087e97a45c03f91839996d8bdf586893da51e633b2f0c1560b3ea"
 
 [metadata.files]
 appnope = [
@@ -530,6 +538,7 @@ colorama = [
     {file = "colorama-0.4.5-py2.py3-none-any.whl", hash = "sha256:854bf444933e37f5824ae7bfc1e98d5bce2ebe4160d46b5edf346a89358e99da"},
     {file = "colorama-0.4.5.tar.gz", hash = "sha256:e6c6b4334fc50988a639d9b98aa429a0b57da6e17b9a44f0451f930b6967b7a4"},
 ]
+cron-descriptor = []
 croniter = []
 dbca-utils = [
     {file = "dbca-utils-1.1.6.tar.gz", hash = "sha256:12e101e905aecc1d622a4271f0f4b3ff830cff224238177b5223bae5c5357240"},
