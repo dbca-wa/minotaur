@@ -57,6 +57,12 @@ class Job(models.Model):
         """
         return get_description(self.schedule)
 
+    def check_within_schedule_deadline(self):
+        """Returns boolean result for whether the current time is within the scheduled running time
+        for this job (i.e. after the expected start and before the finish deadline).
+        """
+        return self.get_expected_finish() > datetime.now(timezone.get_default_timezone())
+
     def check_good(self):
         """Method to check a job and determine if a JobInstance exists having a created value
         greater than or equal to the previous scheduled timestamp, and a status matching the
@@ -105,19 +111,19 @@ This job has exceeded its expected completion deadline: {self.get_expected_finis
         msg = EmailMessage(subject=subject, body=body, from_email=settings.NOREPLY_EMAIL, to=[self.owner.email])
         msg.send(fail_silently=True)
 
-    def notify_workflow(self):
+    def notify_workflow(self, log=True):
         """Function to run through the normal workflow of checking whether a job is in a good state
         or not, updating the current state, and sending notifications (if required).
         """
-        expected_finish = self.get_expected_finish()
-        check_begins = datetime.now(timezone.get_default_timezone())
-        logger = logging.getLogger('jobsy')
+        if log:
+            logger = logging.getLogger('jobsy')
 
         # Don't continue checking if the expected finish is later than now.
-        if expected_finish > check_begins:
-            logger.info(f"Job is currently inside the schedule deadline")
+        if self.check_within_schedule_deadline():
+            if log:
+                logger.info(f"Job is currently inside the schedule deadline")
             self.set_workflow_result('Inside schedule deadline')
-            return
+            return None
 
         self.set_checked()
         check_result = self.check_good()
@@ -125,23 +131,27 @@ This job has exceeded its expected completion deadline: {self.get_expected_finis
 
         # If check_result is None, we can't validly assess the job completion state.
         if check_result is None:
-            self.set_workflow_result('Check result null')
-            return
-
-        if check_result:  # Check is good.
+            self.set_workflow_result('Check result unknown')
+            return None
+        elif check_result:  # Check is successful.
             self.set_good()
             self.set_workflow_result('Success')
-        else:  # Check is bad.
+            return True
+        else:  # Check is not successful.
             self.set_workflow_result('Fail')
-            logger.warn("Job not recorded as completed (failure)")
+            if log:
+                logger.warn("Job not recorded as completed (failure)")
             # Determine is we need to send a notification to the job owner.
             notify = self.check_notify()
             if notify and settings.SEND_NOTIFICATIONS:
                 self.set_notify()
-                logger.info(f"Sending a notification")
+                if log:
+                    logger.info(f"Sending a notification")
                 self.send_notification(check_time)
             else:
-                logger.info("Not sending a notification at this time")
+                if log:
+                    logger.info("Not sending a notification at this time")
+            return False
 
 
 class JobInstance(models.Model):
