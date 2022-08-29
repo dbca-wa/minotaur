@@ -2,7 +2,7 @@ from croniter import croniter
 from cron_descriptor import get_description
 from datetime import datetime, timedelta
 from django.conf import settings
-from django.core.mail import EmailMessage
+from django.core import mail
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
@@ -108,8 +108,12 @@ class Job(models.Model):
         subject = f"JOB FAILURE NOTIFICATION: {self.name}"
         body = f"""Check time: {check_time.strftime("%A %-d-%b-%Y %H:%M:%S %Z")}\n
 This job has exceeded its expected completion deadline: {self.get_expected_finish().strftime("%A %-d-%b-%Y %H:%M:%S %Z")}"""
-        msg = EmailMessage(subject=subject, body=body, from_email=settings.NOREPLY_EMAIL, to=[self.owner.email])
-        msg.send(fail_silently=True)
+        mail.send_mail(
+            subject=subject,
+            message=body,
+            from_email=settings.NOREPLY_EMAIL,
+            recipient_list=[self.owner.email],
+        )
 
     def notify_workflow(self, log=True):
         """Function to run through the normal workflow of checking whether a job is in a good state
