@@ -1,6 +1,7 @@
-# Minotaur task monitoring/reporting service
+# Minotaur
 
-The name is a play on words.
+Minotaur is a lightweight task monitoring/reporting service. The name is a silly
+play on words.
 
 # Overview
 
