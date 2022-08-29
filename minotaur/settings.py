@@ -25,6 +25,7 @@ INTERNAL_IPS = ['127.0.0.1', '::1']
 ROOT_URLCONF = 'minotaur.urls'
 WSGI_APPLICATION = 'minotaur.wsgi.application'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+LOGIN_URL = 'admin:login'
 
 INSTALLED_APPS = [
     'django.contrib.admin',

@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta
+from django.conf import settings
 from django.contrib.auth.models import User
+from django.core import mail
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 from .models import Job, JobInstance
 
@@ -109,7 +112,7 @@ class JobTestCase(TestCase):
         self.assertFalse(self.job.check_notify())
 
     def test_check_notify_never_notified(self):
-        """Test Job.check_notify where a notification has never been recorded
+        """Test Job.check_notify where a notification has never been recorded previously
         """
         self.job.last_good = self.job.get_prev() + timedelta(minutes=1)
         self.job.save()
@@ -142,6 +145,8 @@ class JobTestCase(TestCase):
     def test_notify_workflow_fail(self):
         """Test Job.notify_workflow when an instance was not recorded as expected
         """
+        self.job.last_good = self.job.get_prev() + timedelta(minutes=1)  # Jobs need to have been good at least once to enable notifications.
+        settings.SEND_NOTIFICATIONS = True  # Manually set this to enable email.
         created = self.job.get_prev() - timedelta(hours=2)
         JobInstance.objects.create(
             created=created,
@@ -150,9 +155,9 @@ class JobTestCase(TestCase):
         )
         self.assertFalse(self.job.notify_workflow(log=False))
         self.assertEqual(self.job.workflow_check_result, 'Fail')
-        self.assertIsNone(self.job.last_good)
         self.assertIsNotNone(self.job.last_checked)
         self.assertTrue(self.job.last_checked < datetime.now(timezone.get_default_timezone()))
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_notify_workflow_unknown(self):
         """Test Job.notify_workflow when no instance has been recorded yet
@@ -162,3 +167,47 @@ class JobTestCase(TestCase):
         self.assertIsNone(self.job.last_good)
         self.assertIsNotNone(self.job.last_checked)
         self.assertTrue(self.job.last_checked < datetime.now(timezone.get_default_timezone()))
+
+    def test_job_list_anonymous(self):
+        """Test that an anonymous user is redirected to the admin login
+        """
+        url = reverse('job_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertTemplateUsed(template_name='admin/login.html')
+
+    def test_job_list_loggedin(self):
+        """Test that a logged in user can see the job list view
+        """
+        self.client.login(username='testuser', password='pass')
+        url = reverse('job_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_job_detail_get(self):
+        """Test that the job detail view work for GET
+        """
+        url = reverse('job_detail', kwargs={'id': self.job.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+    def test_job_detail_post(self):
+        """Test that a valid POST request to the job detail view creates an instance
+        """
+        self.assertFalse(JobInstance.objects.exists())
+        url = reverse('job_detail', kwargs={'id': self.job.id})
+        response = self.client.post(url, {'status': 'ok'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(JobInstance.objects.exists())
+
+    def test_job_detail_post_invalid(self):
+        """Test that an invalid POST request to the job detail view does not create an instance
+        """
+        self.assertFalse(JobInstance.objects.exists())
+        url = reverse('job_detail', kwargs={'id': self.job.id})
+        response = self.client.post(url, {'status': ''})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(JobInstance.objects.exists())
+        response = self.client.post(url, {'foo': 'bar'})
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(JobInstance.objects.exists())

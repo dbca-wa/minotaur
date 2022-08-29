@@ -50,8 +50,8 @@ class JobDetailView(View):
     def post(self, request, *args, **kwargs):
         """Should receive a POST request having param ?status=<value>
         """
-        if 'status' not in self.request.POST:
-            return HttpResponseBadRequest('nope')
+        if 'status' not in self.request.POST or not self.request.POST['status']:
+            return HttpResponseBadRequest('ERROR')
         job = Job.objects.get(id=kwargs['id'])
         JobInstance.objects.create(
             job=job,
