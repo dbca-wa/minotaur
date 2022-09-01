@@ -25,6 +25,7 @@ class Job(models.Model):
     last_good = models.DateTimeField(null=True, blank=True, editable=False)  # Timestamp that this job was last checked and found to be OK.
     last_notify = models.DateTimeField(null=True, blank=True, editable=False)  # Timestamp that an email notification was sent to owner.
     workflow_check_result = models.CharField(max_length=64, null=True, blank=True, editable=False)  # Result of the last check.
+    url = models.URLField(max_length=2048, null=True, blank=True, help_text='Job URL')
 
     class Meta:
         ordering = ["-created"]
@@ -108,11 +109,17 @@ class Job(models.Model):
         subject = f"JOB FAILURE NOTIFICATION: {self.name}"
         body = f"""Check time: {check_time.strftime("%A %-d-%b-%Y %H:%M:%S %Z")}\n
 This job has exceeded its expected completion deadline: {self.get_expected_finish().strftime("%A %-d-%b-%Y %H:%M:%S %Z")}"""
+        body_html = f"""<p>Check time: {check_time.strftime("%A %-d-%b-%Y %H:%M:%S %Z")}</p>
+<p>This job has exceeded its expected completion deadline: {self.get_expected_finish().strftime("%A %-d-%b-%Y %H:%M:%S %Z")}</p>"""
+        if self.url:
+            body += f"\nURL: {self.url}"
+            body_html += f"<p>URL: <a href='{self.url}'>{self.url}</a></p>"
         mail.send_mail(
             subject=subject,
             message=body,
             from_email=settings.NOREPLY_EMAIL,
             recipient_list=[self.owner.email],
+            html_message=body_html,
         )
 
     def notify_workflow(self, log=True):
