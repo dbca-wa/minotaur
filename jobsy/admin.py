@@ -24,6 +24,7 @@ class JobAdmin(ModelAdmin):
         "status",
         "owner",
         "active",
+        "url",
         "last_checked",
         "last_good",
         "last_notify",
