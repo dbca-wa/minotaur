@@ -1,3 +1,7 @@
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.cache import never_cache
+
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.http import JsonResponse, HttpResponse, HttpResponseBadRequest
 from django.utils import timezone
@@ -22,6 +26,8 @@ class JobListView(LoginRequiredMixin, View):
         return JsonResponse(jobs, safe=False)
 
 
+@method_decorator(csrf_exempt, name='dispatch')
+@method_decorator(never_cache, name='dispatch')
 class JobDetailView(View):
     http_method_names = ['get', 'post', 'options']
 
@@ -40,6 +46,7 @@ class JobDetailView(View):
             'last_good': job.last_good.astimezone(tz).isoformat() if job.last_good else None,
             'last_notify': job.last_notify.astimezone(tz).isoformat() if job.last_notify else None,
             'active': job.active,
+            'url': job.url,
             'last_instance': {
                 'created': instance.created.astimezone(tz).isoformat(),
                 'status': instance.status,
